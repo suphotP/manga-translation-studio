@@ -1,0 +1,46 @@
+FROM oven/bun:1 AS deps
+WORKDIR /app
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+FROM deps AS build
+WORKDIR /app
+COPY . .
+# Vite inlines VITE_* at build time, so every public client var must be present as a build
+# ARG here — a runtime `environment:` value never reaches the compiled bundle.
+#   VITE_TURNSTILE_SITE_KEY: empty by default → the widget renders nothing (Turnstile-off,
+#     safe by default); operators pass the real key via docker-compose `build.args` to
+#     enable bot protection. See docs/DEPLOYMENT.md §2.7.
+#   VITE_API_BASE: where the SPA sends /api calls; defaults to the Caddy-proxied "/api".
+ARG VITE_TURNSTILE_SITE_KEY=""
+ARG VITE_API_BASE="/api"
+# Frontend Sentry (blank = disabled, the fail-safe default).
+ARG VITE_SENTRY_DSN=""
+ARG VITE_SENTRY_ENVIRONMENT="production"
+ARG VITE_GIT_SHA=""
+ENV VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
+ENV VITE_API_BASE=$VITE_API_BASE
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
+ENV VITE_SENTRY_ENVIRONMENT=$VITE_SENTRY_ENVIRONMENT
+ENV VITE_GIT_SHA=$VITE_GIT_SHA
+RUN bun run build
+
+FROM oven/bun:1 AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=4173
+# adapter-node defaults BODY_SIZE_LIMIT to 512K, which would 413 any large
+# request that hits a SvelteKit server route (form action / +server). Uploads
+# normally go straight to the backend via Caddy (@api → api:3001), but set this
+# to Infinity defensively so the web server can never become an upload bottleneck.
+# (The real per-file/batch upload caps live on the BACKEND: MAX_UPLOAD_SIZE /
+# MAX_UPLOAD_BATCH_SIZE_MB.)
+ENV BODY_SIZE_LIMIT=Infinity
+# adapter-node emits a self-contained server bundle in /app/build (build/index.js
+# plus build/client static assets). No node_modules, vite or svelte config needed
+# at runtime.
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/build ./build
+EXPOSE 4173
+CMD ["bun", "build/index.js"]

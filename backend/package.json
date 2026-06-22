@@ -1,0 +1,43 @@
+{
+  "name": "backend",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/bun": "latest",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/uuid": "^11.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "queue:worker": "bun run src/queue-worker.ts",
+    "cron:worker": "bun run src/cron-worker.ts",
+    "dev": "bun --watch src/index.ts",
+    "assets:backfill": "bun run src/scripts/backfill-state-referenced-assets.ts",
+    "db:migrate": "bun run src/migrations/cli.ts up",
+    "db:migrate:status": "bun run src/migrations/cli.ts status",
+    "db:migrate:check": "bun run src/migrations/cli.ts check",
+    "test": "bun test src/__tests__/",
+    "test:unit": "bun test src/__tests__/security.test.ts src/__tests__/prompt-builder.test.ts src/__tests__/queue.test.ts src/__tests__/config.test.ts",
+    "test:integration": "bun test src/__tests__/routes.test.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.2",
+    "@sentry/bun": "^10.52.0",
+    "arctic": "^3.7.0",
+    "bcryptjs": "^3.0.3",
+    "croner": "^10.0.1",
+    "dodopayments": "^2.34.0",
+    "hono": "^4.12.18",
+    "jsonwebtoken": "^9.0.3",
+    "prom-client": "^15.1.3",
+    "resend": "^6.12.4",
+    "sharp": "^0.34.5",
+    "uuid": "^14.0.0",
+    "zod": "^4.4.3"
+  }
+}

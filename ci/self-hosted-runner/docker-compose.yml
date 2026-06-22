@@ -1,0 +1,29 @@
+# Self-hosted GitHub Actions runner for suphotP/manga-editor-web.
+#
+# WHY: GitHub-hosted runners consume the repo's Actions-minute quota (2000/mo on
+# the free tier). A SELF-HOSTED runner runs jobs on your own Docker host and does
+# NOT consume any Actions minutes — CI/CD becomes effectively free.
+#
+# The CI workflow uses Ubuntu tooling (apt-get for node-canvas's Cairo/Pango libs,
+# sudo, ruby), so the runner runs inside a Linux container even when the Docker
+# host is macOS. The official actions/runner toolchain (bun via setup-bun, apt,
+# sudo) all work inside this image.
+#
+# Start it with:  ./start-runner.sh   (mints a short-lived registration token via
+# the gh CLI and brings the container up; the runner stays registered afterwards).
+services:
+  runner:
+    image: myoung34/github-runner:latest
+    container_name: manga-ci-runner
+    restart: unless-stopped
+    environment:
+      REPO_URL: https://github.com/suphotP/manga-editor-web
+      RUNNER_NAME: manga-selfhosted-1
+      # Injected by start-runner.sh (never commit a token). Fails fast if unset.
+      RUNNER_TOKEN: ${RUNNER_TOKEN:?set RUNNER_TOKEN — run ./start-runner.sh instead of docker compose directly}
+      RUNNER_WORKDIR: /tmp/runner-work
+      RUNNER_SCOPE: repo
+      # These labels must match `runs-on:` in .github/workflows/*.yml
+      LABELS: self-hosted,linux,docker
+      EPHEMERAL: "false"
+      DISABLE_AUTO_UPDATE: "true"

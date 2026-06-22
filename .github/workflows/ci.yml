@@ -1,0 +1,115 @@
+name: CI
+
+# Cost control: run ONLY on PRs targeting master + pushes to master — NOT on every
+# feature-branch push (that previously fan-out 4 jobs per push and burned the
+# Actions-minute quota). Combined with a self-hosted runner (runs-on: self-hosted)
+# these runs are free.
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+# Cancel a superseded in-progress run when a new commit lands on the same ref
+# (e.g. a force-push), so we never pay for stale runs.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  migration-sanity:
+    name: Migration sanity
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Enforces unique migration numbers only. Gaps are tolerated: the merge
+      # train renumbered migrations, leaving legitimate non-consecutive numbers.
+      - name: Check migration numbering (duplicates only, gaps tolerated)
+        run: bash scripts/check-migrations.sh backend/migrations
+
+  backend:
+    name: Backend
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: bun install --frozen-lockfile
+
+      - name: Run backend tests
+        working-directory: backend
+        run: bun test src/__tests__/
+
+      - name: TypeScript no-emit check
+        working-directory: backend
+        continue-on-error: true
+        run: bunx tsc --noEmit --project tsconfig.json
+
+  frontend:
+    name: Frontend
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      # node-canvas (a frontend devDependency) gives jsdom a real 2D context so
+      # the image-edit tool-core/registry tests run their actual rasterisation
+      # path instead of a no-op polyfill. Its native build needs Cairo/Pango.
+      - name: Install node-canvas system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: bun install --frozen-lockfile
+
+      - name: Build frontend
+        working-directory: frontend
+        run: bun run build
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: bun run test
+
+  lint:
+    name: Lint and syntax checks
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # The self-hosted runner image may not ship Ruby; install it for the YAML check.
+      - name: Ensure Ruby is available
+        run: command -v ruby >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y ruby)
+
+      - name: Validate workflow YAML
+        run: ruby -e 'require "yaml"; ARGV.each { |path| YAML.load_file(path) }' .github/workflows/*.yml
+
+      - name: Validate shell scripts
+        run: |
+          set -euo pipefail
+          while IFS= read -r script; do
+            bash -n "$script"
+          done < <(git ls-files '*.sh')
+
+      - name: Report package lint scripts
+        run: |
+          set -euo pipefail
+          if grep -q '"lint"' package.json backend/package.json frontend/package.json; then
+            echo "Lint script detected. Wire it here when the repo standardizes lint dependencies."
+          else
+            echo "No package.json lint script is configured yet; CI runs YAML and shell syntax checks."
+          fi
+

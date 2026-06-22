@@ -1,0 +1,1105 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* ── Unified workspace design tokens (Tailwind v4 @theme) ──
+   Namespaced `ws-*` so they never clash with Tailwind/daisyUI defaults.
+   Use as semantic utilities: bg-ws-surface, text-ws-muted/70, border-ws-line/15,
+   text-ws-accent, ring-ws-line, etc. One vocabulary across all 4 workspace pages. */
+@theme {
+	--color-ws-ink: #ECECF2;
+	--color-ws-text: #9A9AA8;
+	--color-ws-faint: #8A8A98;
+	--color-ws-line: #a6b7dc;
+	--color-ws-bg: #0B0B0F;
+	--color-ws-surface: #15151D;
+	--color-ws-surface2: #1C1C26;
+	--color-ws-accent: #7C5CFF;
+	/* Canonical keyboard focus ring shared across workspace surfaces. Used by the
+	   global `:focus-visible` fallback below so every button/link/clickable shows
+	   a clear ring on keyboard focus (never on mouse-click). */
+	--ws-focus-ring: 0 0 0 2px var(--color-ws-bg, #0B0B0F), 0 0 0 4px var(--color-ws-accent, #7C5CFF);
+	--color-ws-cyan: #22D3EE;
+	--color-ws-green: #34D399;
+	--color-ws-amber: #FBBF24;
+	--color-ws-rose: #FB7185;
+	--color-ws-violet: #8B5CF6;
+	--color-ws-blue: #8fb8ff;
+	--radius-ws: 16px;
+	--radius-ws-card: 12px;
+	--radius-ws-ctrl: 10px;
+	--font-ws-sans: 'Inter', 'Noto Sans Thai', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+	/* ── Canonical workspace surface frame ──
+	   ONE content width + ONE horizontal padding + ONE vertical rhythm shared by
+	   every workspace surface (dashboard / library / chapter-pages / work-board /
+	   import / reports / settings). Derived from the dashboard's intended 1200px
+	   content column so Dashboard and Library line up pixel-for-pixel. Consumed via
+	   the `.ws-surface` / `.ws-surface-inner` utilities below and the
+	   WorkspacePageHeader atom — DO NOT hardcode per-surface max-widths anymore. */
+	--ws-surface-max: 1200px;
+	--ws-surface-pad-x: clamp(16px, 3.2vw, 32px);
+	--ws-surface-pad-top: 18px;
+	--ws-surface-pad-bottom: 40px;
+	--ws-surface-gap: clamp(18px, 2.4vw, 28px);
+}
+
+/* ── Workspace shared utilities (additive, namespaced `ws-*`) ──
+   Match the approved "creator-studio" mockups: hairline borders rgba(255,255,255,0.07),
+   soft shadows, violet→fuchsia gradient accents. These are purely additive and never
+   collide with the token utilities above or any `--editor-*`/`--workspace-*` rule. */
+:root {
+	--ws-hair: rgba(255, 255, 255, 0.07);
+	--ws-hair-strong: rgba(255, 255, 255, 0.11);
+}
+
+.ws-sans {
+	font-family: var(--font-ws-sans);
+}
+
+/* Apply the workspace typeface to the non-editor surfaces + shared chrome.
+   The editor view (`.editor-root.workspace-editor-view`) is deliberately excluded so
+   the Fabric canvas / tools keep their Outfit/Space Grotesk font stack. */
+.editor-root.workspace-dashboard-view,
+.editor-root.workspace-library-view,
+.editor-root.workspace-pages-view,
+.editor-root.workspace-work-view,
+.editor-root.workspace-review-view,
+.editor-root.workspace-import-view,
+.workspace-sidebar-rail,
+.workspace-top-utility {
+	font-family: var(--font-ws-sans);
+}
+
+/* ── Keyboard focus ring (a11y) ──
+   Every interactive control on the workspace chrome + non-editor surfaces gets a
+   clear, consistent ring on KEYBOARD focus (`:focus-visible` — never on a plain
+   mouse click). Scoped to the workspace shells so it does not touch the Fabric
+   editor canvas tools (which manage their own focus). Components that already
+   define a richer `:focus-visible` style win on specificity; this is the floor. */
+.workspace-sidebar-rail :focus-visible,
+.workspace-top-utility :focus-visible,
+.settings-shell :focus-visible,
+.editor-root.workspace-dashboard-view :focus-visible,
+.editor-root.workspace-library-view :focus-visible,
+.editor-root.workspace-pages-view :focus-visible,
+.editor-root.workspace-work-view :focus-visible,
+.editor-root.workspace-review-view :focus-visible,
+.editor-root.workspace-import-view :focus-visible {
+	outline: none;
+	box-shadow: var(--ws-focus-ring);
+	border-radius: var(--radius-ws-ctrl, 10px);
+}
+/* Keep the sidebar command triggers' own border tint, but pair it with the ring
+   so keyboard users see a real focus indicator (it previously only set the
+   border + `outline: none`). */
+.workspace-sidebar-rail .ws-command-trigger:focus-visible {
+	box-shadow: var(--ws-focus-ring);
+}
+
+/* soft elevated panel + quiet variant */
+.ws-panel {
+	background: var(--color-ws-surface, #15151D);
+	border: 1px solid var(--ws-hair);
+	box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset, 0 14px 40px -28px rgba(0, 0, 0, 0.9);
+}
+.ws-panel-quiet {
+	background: var(--color-ws-surface, #15151D);
+	border: 1px solid var(--ws-hair);
+}
+
+/* gradient accents */
+.ws-grad-primary {
+	background: linear-gradient(100deg, var(--color-ws-violet, #8B5CF6) 0%, var(--color-ws-accent, #7C5CFF) 100%);
+}
+.ws-grad-primary-soft {
+	background: linear-gradient(100deg,
+		color-mix(in srgb, var(--color-ws-violet, #8B5CF6) 16%, transparent),
+		color-mix(in srgb, var(--color-ws-accent, #7C5CFF) 16%, transparent));
+}
+.ws-text-grad {
+	background: linear-gradient(100deg, var(--color-ws-blue, #8fb8ff), var(--color-ws-violet, #8B5CF6));
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+
+/* thin progress track + fill */
+.ws-track {
+	background: var(--ws-hair);
+	border-radius: 999px;
+	overflow: hidden;
+}
+.ws-fill {
+	height: 100%;
+	border-radius: 999px;
+}
+
+/* status dot */
+.ws-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 999px;
+	flex: none;
+}
+
+/* hoverable row */
+.ws-row-hover {
+	transition: background 0.14s ease, border-color 0.14s ease;
+}
+.ws-row-hover:hover {
+	background: var(--color-ws-surface2, #1C1C26);
+}
+
+/* ghost button */
+.ws-btn-ghost {
+	background: color-mix(in srgb, var(--color-ws-surface, #15151D) 42%, transparent);
+	border: 1px solid var(--ws-hair);
+	transition: background 0.14s ease, border-color 0.14s ease;
+}
+.ws-btn-ghost:hover {
+	background: color-mix(in srgb, var(--color-ws-surface2, #1C1C26) 64%, transparent);
+	border-color: var(--ws-hair-strong);
+}
+
+/* shared dialog action buttons (used by the Dialog atom consumers) */
+.ws-dialog-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 42px;
+	padding: 0 16px;
+	border: 1px solid var(--ws-hair-strong);
+	border-radius: var(--radius-ws-ctrl, 10px);
+	background: color-mix(in srgb, var(--color-ws-surface2, #1C1C26) 70%, transparent);
+	color: var(--color-ws-ink);
+	font-family: inherit;
+	font-size: 13px;
+	font-weight: 800;
+	line-height: 1.2;
+	text-align: center;
+	cursor: pointer;
+	transition: background 0.14s ease, border-color 0.14s ease, filter 0.14s ease;
+}
+.ws-dialog-btn:hover {
+	border-color: rgba(255, 255, 255, 0.18);
+	background: color-mix(in srgb, var(--color-ws-surface2, #1C1C26) 88%, transparent);
+}
+.ws-dialog-btn:disabled {
+	opacity: 0.55;
+	cursor: default;
+}
+.ws-dialog-btn-primary {
+	border-color: rgba(124, 92, 255, 0.5);
+	background: linear-gradient(100deg, var(--color-ws-violet, #8B5CF6) 0%, var(--color-ws-accent, #7C5CFF) 100%);
+	color: #fff;
+}
+.ws-dialog-btn-primary:hover {
+	border-color: rgba(124, 92, 255, 0.7);
+	background: linear-gradient(100deg, var(--color-ws-violet, #8B5CF6) 0%, var(--color-ws-accent, #7C5CFF) 100%);
+	filter: brightness(1.08);
+}
+.ws-dialog-btn-danger {
+	border-color: rgba(251, 113, 133, 0.45);
+	background: color-mix(in srgb, var(--color-ws-rose, #FB7185) 12%, transparent);
+	color: #ffd0d8;
+}
+.ws-dialog-btn-danger:hover {
+	border-color: rgba(251, 113, 133, 0.65);
+	background: color-mix(in srgb, var(--color-ws-rose, #FB7185) 20%, transparent);
+}
+/* passive "receipt" state — looks like a button but is inert */
+.ws-dialog-receipt {
+	opacity: 0.7;
+	cursor: default;
+}
+
+/* nav rail items */
+.ws-nav-item {
+	transition: background 0.14s ease, color 0.14s ease;
+}
+.ws-nav-item:hover {
+	background: color-mix(in srgb, var(--color-ws-surface2, #1C1C26) 70%, transparent);
+}
+.ws-nav-active {
+	background: linear-gradient(100deg,
+		color-mix(in srgb, var(--color-ws-accent, #7C5CFF) 18%, transparent),
+		color-mix(in srgb, var(--color-ws-violet, #8B5CF6) 7%, transparent));
+	border-color: rgba(124, 92, 255, 0.25);
+}
+
+/* segmented control (mode toggle) */
+.ws-seg {
+	color: var(--color-ws-text);
+	transition: background 0.14s ease, color 0.14s ease;
+}
+.ws-seg:hover {
+	color: var(--color-ws-ink);
+}
+.ws-seg-on {
+	background: color-mix(in srgb, var(--color-ws-surface2, #1C1C26) 90%, transparent);
+	color: var(--color-ws-ink);
+}
+
+/* ── Workspace surface layout grids (fluid; container-query driven so they
+   respond to the real content width regardless of sidebar/rail state) ── */
+.ws-dash-inner {
+	container-type: inline-size;
+	gap: clamp(16px, 2.2vw, 28px);
+	width: 100%;
+}
+.ws-block {
+	min-width: 0;
+}
+/* auto-fit card strip — fluid count, no breakpoints; --ws-min sets the ideal min */
+.ws-auto-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(var(--ws-min, 200px), 100%), 1fr));
+}
+/* hero: stacked on narrow, [thumb | info | action] when there is room */
+.ws-hero-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+}
+/* two panels side-by-side (left slightly wider), stacked on narrow */
+.ws-two-col {
+	display: grid;
+	grid-template-columns: 1fr;
+}
+@container (min-width: 640px) {
+	.ws-hero-grid {
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		align-items: center;
+	}
+}
+@container (min-width: 820px) {
+	.ws-two-col {
+		grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
+	}
+}
+
+/* ── Shared workspace SURFACE frame ──────────────────────────────────────────
+   Every non-editor workspace surface is an overlay that fills the shell's
+   canvas-area and owns its own scroll. `.ws-surface` is that overlay (fixed
+   chrome: position, scroll, background wash, typeface). `.ws-surface-inner` is
+   the single centered content column — ONE max-width, ONE horizontal padding,
+   ONE vertical rhythm — so Dashboard, Library, Chapter/Pages, Work-board,
+   Import, Reports and Settings all line up at the exact same width with the
+   exact same gutters. This replaces the per-surface 1180/1200/1480/1500px +
+   18/24/32px ad-hoc containers that made the surfaces look misaligned. */
+.ws-surface {
+	position: absolute;
+	inset: 0;
+	z-index: 48;
+	overflow-y: auto;
+	background:
+		radial-gradient(1200px 600px at 78% -8%, rgba(139, 92, 246, 0.1), transparent 60%),
+		radial-gradient(900px 500px at -5% 8%, rgba(34, 211, 238, 0.05), transparent 55%),
+		var(--color-ws-bg, #0b0b0f);
+	color: var(--color-ws-ink, #ececf2);
+	font-family: var(--font-ws-sans);
+	letter-spacing: 0.1px;
+}
+
+.ws-surface-inner {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ws-surface-gap);
+	width: 100%;
+	max-width: var(--ws-surface-max);
+	margin-inline: auto;
+	padding: var(--ws-surface-pad-top) var(--ws-surface-pad-x) var(--ws-surface-pad-bottom);
+	min-height: 100%;
+}
+
+/* ── Cookie-consent space reservation ────────────────────────────────────────
+   The cookie banner (CookieConsent.svelte) is a fixed bottom overlay. On first
+   load it would otherwise sit ON TOP of the bottom of the page (the dashboard
+   pipeline/notifications panels, footer links, any bottom controls). While the
+   banner is shown the component sets `body.cc-consent-open` and publishes the
+   banner's live height into `--cc-banner-height`; here we turn that into real
+   reserved space so the banner never obscures or covers an interactive control.
+
+   Two scroll models are covered:
+     1) Workspace shell — content scrolls INSIDE `.ws-surface` (the document is
+        viewport-locked), so we extend that scroll region's bottom padding and
+        scroll-padding by the banner height.
+     2) Normal document-scroll pages (marketing/legal/auth/settings) — we pad the
+        <body> bottom and add scroll-padding so anchored jumps clear the banner.
+   On dismiss the component removes the class + variable, releasing all of it. */
+body.cc-consent-open .ws-surface {
+	scroll-padding-bottom: var(--cc-banner-height, 0px);
+}
+body.cc-consent-open .ws-surface-inner {
+	padding-bottom: calc(var(--ws-surface-pad-bottom) + var(--cc-banner-height, 0px));
+}
+body.cc-consent-open .editor-root.workspace-editor-view {
+	height: calc(100vh - var(--cc-banner-height, 0px));
+}
+body.cc-consent-open:not(.app-viewport-locked) {
+	padding-bottom: var(--cc-banner-height, 0px);
+}
+/* scroll-padding belongs on the scroll container; for document-scroll pages
+   that is the root scroller, so anchored in-page jumps clear the banner too. */
+html:has(> body.cc-consent-open:not(.app-viewport-locked)) {
+	scroll-padding-bottom: var(--cc-banner-height, 0px);
+}
+
+/* Surfaces that mount the always-full-width WorkspaceTopUtilityBar as their
+   first child: pull the bar out to the inner gutter edges so the command dock
+   spans the content column edge-to-edge, exactly like the dashboard. */
+.ws-surface-inner > :global(.workspace-top-utility:first-child) {
+	margin-inline: calc(-1 * var(--ws-surface-pad-x));
+	margin-top: calc(-1 * var(--ws-surface-pad-top));
+	width: calc(100% + 2 * var(--ws-surface-pad-x));
+}
+
+/* ── Shared workspace PAGE HEADER (atom: WorkspacePageHeader.svelte) ──────────
+   ONE header pattern across surfaces: optional uppercase eyebrow, a title (with
+   optional inline meta), a subtitle line, and a right-aligned actions slot that
+   wraps under the title on narrow widths. Keeps title sizing + spacing identical
+   everywhere so the header no longer "jumps" between Dashboard and Library. */
+.ws-page-header {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+	width: 100%;
+}
+.ws-page-header-text {
+	min-width: 0;
+}
+.ws-page-header-eyebrow {
+	display: block;
+	color: var(--color-ws-violet, #8b5cf6);
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+.ws-page-header-title {
+	margin: 2px 0 0;
+	color: var(--color-ws-ink, #ececf2);
+	font-size: clamp(20px, 2.4vw, 26px);
+	font-weight: 700;
+	line-height: 1.12;
+	letter-spacing: -0.01em;
+}
+.ws-page-header-title .ws-page-header-meta {
+	margin-left: 8px;
+	color: var(--color-ws-faint, #6b6b78);
+	font-size: 0.62em;
+	font-weight: 600;
+	letter-spacing: 0;
+}
+.ws-page-header-sub {
+	margin: 5px 0 0;
+	color: var(--color-ws-text, #9a9aa8);
+	font-size: 13px;
+	line-height: 1.4;
+	max-width: 70ch;
+}
+.ws-page-header-actions {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+@media (max-width: 560px) {
+	.ws-page-header-actions {
+		width: 100%;
+	}
+	.ws-page-header-actions > :global(*) {
+		flex: 1 1 auto;
+	}
+}
+
+:root {
+	/* Bridge legacy editor/workspace surfaces to the canonical ws dark tokens so
+	   old components inherit the current theme without markup rewrites. */
+	--editor-bg: var(--color-ws-bg, #0B0B0F);
+	--editor-surface: var(--color-ws-surface, #15151D);
+	--editor-surface-raised: var(--color-ws-surface2, #1C1C26);
+	--editor-canvas-bg: var(--color-ws-bg, #0B0B0F);
+	--editor-border: var(--ws-hair-strong, rgba(255, 255, 255, 0.11));
+	--editor-border-soft: var(--ws-hair, rgba(255, 255, 255, 0.07));
+	--editor-text: var(--color-ws-ink, #ECECF2);
+	--editor-text-dim: var(--color-ws-text, #9A9AA8);
+	--editor-text-muted: var(--color-ws-faint, #8A8A98);
+	--editor-accent: var(--color-ws-accent, #7C5CFF);
+	--editor-accent-hover: var(--color-ws-violet, #8B5CF6);
+	--editor-success: var(--color-ws-green, #34D399);
+	--editor-warning: var(--color-ws-amber, #FBBF24);
+	--editor-danger: var(--color-ws-rose, #FB7185);
+	--workspace-bg: var(--color-ws-bg, #0B0B0F);
+	--workspace-bg-2: var(--color-ws-surface, #15151D);
+	--workspace-panel: var(--color-ws-surface, #15151D);
+	--workspace-panel-raised: var(--color-ws-surface2, #1C1C26);
+	--workspace-panel-soft: var(--ws-hair, rgba(255, 255, 255, 0.07));
+	--workspace-line: var(--ws-hair, rgba(255, 255, 255, 0.07));
+	--workspace-line-strong: var(--ws-hair-strong, rgba(255, 255, 255, 0.11));
+	--workspace-ink: var(--color-ws-ink, #ECECF2);
+	--workspace-text: var(--color-ws-text, #9A9AA8);
+	--workspace-muted: var(--color-ws-faint, #8A8A98);
+	--workspace-dim: var(--color-ws-faint, #8A8A98);
+	--workspace-violet: var(--color-ws-violet, #8B5CF6);
+	--workspace-magenta: var(--color-ws-accent, #7C5CFF);
+	--workspace-cyan: var(--color-ws-cyan, #22D3EE);
+	--workspace-green: var(--color-ws-green, #34D399);
+	--workspace-amber: var(--color-ws-amber, #FBBF24);
+	--workspace-red: var(--color-ws-rose, #FB7185);
+	--workspace-radius: var(--radius-ws-card, 12px);
+	--workspace-shadow: 0 14px 40px -28px color-mix(in srgb, var(--color-ws-bg, #0B0B0F) 90%, transparent);
+	--editor-toolbar-h: 64px;
+	--editor-statusbar-h: 24px;
+	--editor-sidebar-w: clamp(350px, 24vw, 390px);
+	--editor-tools-w: 48px;
+}
+
+@media (max-width: 1280px) {
+	:root {
+		--editor-sidebar-w: clamp(340px, 28vw, 350px);
+	}
+}
+
+@media (min-width: 901px) and (max-width: 1040px) {
+	:root {
+		--editor-toolbar-h: 58px;
+		--editor-statusbar-h: 40px;
+		--editor-sidebar-w: clamp(260px, 28vw, 300px);
+		--editor-tools-w: 48px;
+	}
+}
+
+@media (min-width: 901px) and (max-width: 1180px) and (pointer: coarse) {
+	:root {
+		--editor-toolbar-h: 58px;
+		--editor-statusbar-h: 40px;
+		--editor-sidebar-w: clamp(260px, 28vw, 300px);
+		--editor-tools-w: 48px;
+	}
+}
+
+html, body {
+	margin: 0;
+	padding: 0;
+}
+
+/* ── Viewport lock (editor/workspace canvas only) ──
+   The Fabric editor and the workspace shell are a fixed full-viewport frame:
+   they size themselves to 100vw/100vh, manage their own internal scroll
+   regions, and must NOT let the document scroll (a scrolling document would
+   drift the Fabric canvas out from under the toolbar/inspector chrome).
+
+   This lock is applied ONLY while a workspace/editor surface is mounted, by
+   toggling `body.app-viewport-locked` from the (workspace) route layout. Every
+   other route group (marketing, legal, auth, settings, onboarding, admin, error
+   shells) is a standalone long-form page and keeps NORMAL document scroll, so
+   tall content stays reachable. Previously this rule was unconditionally on
+   `html, body`, which leaked the editor lock to every page and clipped any
+   content taller than the viewport. */
+body.app-viewport-locked,
+html:has(> body.app-viewport-locked) {
+	overflow: hidden;
+	height: 100%;
+}
+
+canvas {
+	display: block;
+}
+
+/* ── Global interactive-cursor affordance ──
+   Tailwind v4 Preflight no longer sets `cursor: pointer` on buttons, so
+   interactive controls looked non-clickable. Apply pointer systemically to
+   buttons, links, and ARIA-role'd / clearly-clickable elements, and
+   `not-allowed` to disabled ones. The Fabric `<canvas>` (which sets its own
+   crosshair/move cursors via JS) and text-entry controls are deliberately left
+   alone so they keep their native cursors. */
+button,
+[role="button"],
+[role="link"],
+[role="tab"],
+[role="menuitem"],
+[role="option"],
+[role="switch"],
+a[href],
+summary,
+label[for],
+select,
+.clickable {
+	cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+select:disabled,
+.clickable[aria-disabled="true"],
+:disabled {
+	cursor: not-allowed;
+}
+
+/* Keep native text cursor on text-entry fields and editable regions, even when
+   they carry one of the role/clickable selectors above. */
+input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+textarea,
+[contenteditable="true"] {
+	cursor: text;
+}
+
+/* ── Form-control theming baseline (issue #13) ────────────────────────────────
+   Native <select> elements rendered the OS-default chrome (chunky arrow, system
+   colors) — the "ใช้ css กากๆ" look. Strip the native appearance and draw a
+   themed chevron that adapts to BOTH the workspace (ws-*) and editor themes via
+   `currentColor`. Zero-specificity `:where()` so any element's own tailwind/
+   class styles (background, border, radius) always win — this only replaces the
+   un-themable native chrome, never the colors a component already chose.
+   EXCLUDES the editor's own `.panel-*` controls: their `background:` shorthand
+   would erase this chevron's `background-image` (leaving NO arrow), so the
+   editor keeps its bespoke styling untouched. Scoped to the workspace app shell
+   so it can't touch landing/auth surfaces. */
+.workspace-app-shell :where(select:not(.panel-select)) {
+	appearance: none;
+	-webkit-appearance: none;
+	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239A9AA8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+	background-repeat: no-repeat;
+	background-position: right 8px center;
+	background-size: 14px 14px;
+	padding-right: 26px;
+}
+/* A select with no explicit background still needs a readable themed surface so
+   the option text isn't OS-grey on a transparent field. Only kicks in when the
+   element sets no own background (still zero specificity). */
+.workspace-app-shell :where(select:not(.panel-select):not([class*="bg-"])) {
+	background-color: var(--color-ws-surface2, #1c1c26);
+	color: var(--color-ws-ink, #ececf2);
+	border: 1px solid var(--ws-hair-strong, rgba(255, 255, 255, 0.11));
+	border-radius: var(--radius-ws-ctrl, 10px);
+}
+.workspace-app-shell :where(input[type="text"]:not(.panel-input):not([class*="bg-"]), input[type="email"]:not(.panel-input):not([class*="bg-"]), input[type="search"]:not(.panel-input):not([class*="bg-"]), input[type="number"]:not(.panel-input):not([class*="bg-"]), input[type="password"]:not(.panel-input):not([class*="bg-"]), textarea:not(.panel-input):not([class*="bg-"])) {
+	background-color: var(--color-ws-bg, #0b0b0f);
+	color: var(--color-ws-ink, #ececf2);
+	border: 1px solid var(--ws-hair-strong, rgba(255, 255, 255, 0.11));
+	border-radius: var(--radius-ws-ctrl, 10px);
+}
+
+/* ── Editor root grid layout ── */
+.editor-root {
+	display: grid;
+	grid-template-rows: var(--editor-toolbar-h) 1fr var(--editor-statusbar-h);
+	grid-template-columns: var(--editor-tools-w) minmax(0, 1fr) var(--editor-sidebar-w);
+	grid-template-areas:
+		"toolbar  toolbar  toolbar"
+		"tools    canvas   panel"
+		"status   status   status";
+	height: 100vh;
+	background:
+		radial-gradient(circle at 18% 8%, rgba(115, 233, 196, 0.12), transparent 32%),
+		radial-gradient(circle at 82% 16%, rgba(143, 183, 255, 0.1), transparent 30%),
+		linear-gradient(180deg, #10141d, #080a10 48%, #04060a);
+	color: var(--editor-text);
+	font-family: 'Outfit', 'Space Grotesk', 'Sarabun', ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai", "Helvetica Neue", sans-serif;
+	font-size: 12px;
+}
+
+.editor-root.workspace-editor-view {
+	--editor-main-toolbar-h: 104px;
+	--editor-options-toolbar-h: 50px;
+	--editor-toolbar-h: calc(var(--editor-main-toolbar-h) + var(--editor-options-toolbar-h));
+}
+
+@media (max-width: 1024px) and (orientation: portrait) {
+	.editor-root.workspace-editor-view {
+		--editor-main-toolbar-h: 104px;
+		--editor-options-toolbar-h: 50px;
+	}
+}
+
+/* Phone-width editors: the selected-layer owner controls wrap into a two-row
+   grid (ToolOptionsBar @480px), so the grid must reserve the taller bar —
+   .toolbar-area has overflow:hidden and clipped the second row (codex P2). */
+@media (max-width: 480px) {
+	.editor-root.workspace-editor-view {
+		--editor-options-toolbar-h: 96px;
+	}
+}
+
+@media (min-width: 901px) and (max-width: 1180px) and (pointer: coarse) {
+	.editor-root.workspace-editor-view {
+		--editor-main-toolbar-h: 104px;
+		--editor-options-toolbar-h: 50px;
+	}
+}
+
+/* iPad landscape (e.g. 1024×768): the 104px main + 50px options + status bar
+   ate ~154px of editor chrome, leaving only ~590px of canvas on a 768px-tall
+   viewport. Short landscape viewports trim the main toolbar to 76px (its inner
+   command row only needs ~44px; the bar is a single horizontal flex row with
+   overflow-x:auto, so contents don't clip) and the options bar to 44px, handing
+   ~34px back to the canvas. min-width:901 keeps phones on the portrait stack. */
+@media (min-width: 901px) and (max-height: 820px) and (orientation: landscape) {
+	.editor-root.workspace-editor-view {
+		--editor-main-toolbar-h: 76px;
+		--editor-options-toolbar-h: 44px;
+	}
+}
+
+.editor-root.workspace-dashboard-view .canvas-area,
+.editor-root.workspace-library-view .canvas-area,
+.editor-root.workspace-pages-view .canvas-area,
+.editor-root.workspace-work-view .canvas-area,
+.editor-root.workspace-review-view .canvas-area,
+.editor-root.workspace-import-view .canvas-area {
+	background:
+		radial-gradient(circle at 18% 10%, rgba(115, 233, 196, 0.13), transparent 34%),
+		radial-gradient(circle at 88% 8%, rgba(143, 184, 255, 0.1), transparent 30%),
+		radial-gradient(circle at 55% 92%, rgba(111, 245, 232, 0.065), transparent 28%),
+		linear-gradient(180deg, #080b12, var(--workspace-bg) 44%, #030407);
+}
+
+.editor-root .toolbar-area  { grid-area: toolbar; overflow: hidden; position: relative; z-index: 1000; }
+/* min-height/min-width:0 lets the `1fr` canvas row honour the viewport instead
+   of growing to fit the tool dock's intrinsic content height (which clipped the
+   bottom tools below the fold at short viewports like iPad landscape 1024×768);
+   overflow:hidden then hands scrolling to the dock's own `overflow-y:auto`. */
+.editor-root .tools-area    { grid-area: tools; min-width: 0; min-height: 0; overflow: hidden; }
+.editor-root .canvas-area   { grid-area: canvas; position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+.editor-root .panel-area    { grid-area: panel; overflow: hidden; }
+.editor-root .status-area   { grid-area: status; overflow: hidden; display: flex; flex-direction: column; }
+
+.editor-root.workspace-editor-view .right-panel-top.layers-compact {
+	gap: 4px;
+	padding: 5px 8px;
+}
+
+.editor-root.workspace-editor-view .right-panel-top.layers-compact .right-panel-mode-picker {
+	gap: 3px;
+}
+
+.editor-root.workspace-editor-view .right-panel-top.layers-compact .right-panel-mode-picker button {
+	min-height: 40px;
+	padding: 3px 4px;
+}
+
+.editor-root.workspace-editor-view .canvas-area {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+}
+
+.editor-root.workspace-editor-view .editor-path-bar {
+	grid-row: 1;
+}
+
+.editor-root.workspace-editor-view .canvas-workspace {
+	grid-row: 2;
+	min-height: 0;
+}
+
+.editor-root.workspace-dashboard-view,
+.editor-root.workspace-library-view,
+.editor-root.workspace-pages-view,
+.editor-root.workspace-work-view,
+.editor-root.workspace-review-view,
+.editor-root.workspace-import-view {
+	grid-template-columns: 0 minmax(0, 1fr) 0;
+}
+
+.editor-root.workspace-dashboard-view {
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: 1fr;
+	grid-template-areas: "canvas";
+}
+
+.editor-root.workspace-library-view {
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: 1fr;
+	grid-template-areas: "canvas";
+}
+
+/* The review reader owns its own toolbar/rail/scroll chrome, so it takes the full
+   single-area canvas like the dashboard (editor toolbar/tools/panel/status hidden). */
+.editor-root.workspace-review-view {
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: 1fr;
+	grid-template-areas: "canvas";
+}
+
+.editor-root.inspector-hidden:not(.workspace-dashboard-view):not(.workspace-library-view):not(.workspace-pages-view):not(.workspace-work-view):not(.workspace-import-view):not(.workspace-review-view) {
+	grid-template-columns: var(--editor-tools-w) minmax(0, 1fr) 0;
+}
+
+.editor-root:has(.status-retry-save) {
+	--editor-statusbar-h: 40px;
+}
+
+.editor-root.workspace-dashboard-view .tools-area,
+.editor-root.workspace-dashboard-view .panel-area,
+.editor-root.workspace-dashboard-view .toolbar-area,
+.editor-root.workspace-dashboard-view .status-area,
+.editor-root.workspace-library-view .tools-area,
+.editor-root.workspace-library-view .panel-area,
+.editor-root.workspace-library-view .toolbar-area,
+.editor-root.workspace-library-view .status-area,
+.editor-root.workspace-pages-view .tools-area,
+.editor-root.workspace-pages-view .panel-area,
+.editor-root.workspace-pages-view .toolbar-area,
+.editor-root.workspace-work-view .tools-area,
+.editor-root.workspace-work-view .panel-area,
+.editor-root.workspace-work-view .toolbar-area,
+.editor-root.workspace-review-view .tools-area,
+.editor-root.workspace-review-view .panel-area,
+.editor-root.workspace-review-view .toolbar-area,
+.editor-root.workspace-review-view .status-area,
+.editor-root.workspace-import-view .tools-area,
+.editor-root.workspace-import-view .panel-area,
+.editor-root.workspace-import-view .toolbar-area,
+.editor-root.inspector-hidden .panel-area {
+	display: none;
+}
+
+@media (max-width: 1024px) and (orientation: portrait) {
+	:root {
+		--editor-toolbar-h: 56px;
+		--editor-statusbar-h: 26px;
+		--editor-tools-w: 56px;
+	}
+
+	.editor-root:not(.workspace-dashboard-view):not(.workspace-library-view):not(.workspace-pages-view):not(.workspace-work-view):not(.workspace-import-view):not(.workspace-review-view) {
+		grid-template-rows: var(--editor-toolbar-h) minmax(0, 1fr) clamp(280px, 34vh, 430px) var(--editor-statusbar-h);
+		grid-template-columns: var(--editor-tools-w) minmax(0, 1fr);
+		grid-template-areas:
+			"toolbar toolbar"
+			"tools   canvas"
+			"panel   panel"
+			"status  status";
+	}
+
+	.editor-root.inspector-hidden:not(.workspace-dashboard-view):not(.workspace-library-view):not(.workspace-pages-view):not(.workspace-work-view):not(.workspace-import-view):not(.workspace-review-view) {
+		grid-template-rows: var(--editor-toolbar-h) minmax(0, 1fr) var(--editor-statusbar-h);
+		grid-template-areas:
+			"toolbar toolbar"
+			"tools   canvas"
+			"status  status";
+	}
+
+	.editor-root:not(.workspace-dashboard-view):not(.workspace-library-view):not(.workspace-pages-view):not(.workspace-work-view):not(.workspace-import-view):not(.workspace-review-view) .panel-area {
+		display: block;
+		min-height: 0;
+		border-top: 1px solid var(--editor-border-soft);
+	}
+
+	.editor-root.inspector-hidden:not(.workspace-dashboard-view):not(.workspace-library-view):not(.workspace-pages-view):not(.workspace-work-view):not(.workspace-import-view):not(.workspace-review-view) .panel-area {
+		display: none;
+	}
+}
+
+@media (max-width: 640px) {
+	.editor-root.workspace-editor-view {
+		--editor-main-toolbar-h: 48px;
+		--editor-options-toolbar-h: 44px;
+		--editor-toolbar-h: calc(var(--editor-main-toolbar-h) + var(--editor-options-toolbar-h));
+		--editor-statusbar-h: 0px;
+		--editor-tools-w: 48px;
+	}
+
+	.editor-root.workspace-editor-view {
+		grid-template-rows: var(--editor-toolbar-h) minmax(0, 1fr) minmax(156px, 28dvh);
+		grid-template-columns: var(--editor-tools-w) minmax(0, 1fr);
+		grid-template-areas:
+			"toolbar toolbar"
+			"tools   canvas"
+			"panel   panel";
+	}
+
+	.editor-root.workspace-editor-view.inspector-hidden {
+		grid-template-rows: var(--editor-toolbar-h) minmax(0, 1fr);
+		grid-template-areas:
+			"toolbar toolbar"
+			"tools   canvas";
+	}
+
+	.editor-root.workspace-editor-view .panel-area {
+		display: block;
+		min-height: 0;
+		max-height: 30dvh;
+		overflow: hidden;
+		border-top: 1px solid var(--editor-border-soft);
+		border-radius: 14px 14px 0 0;
+		background: var(--editor-surface);
+	}
+
+	.editor-root.workspace-editor-view.inspector-hidden .panel-area,
+	.editor-root.workspace-editor-view .status-area {
+		display: none;
+	}
+}
+
+/* ── Canvas workspace — centers the Fabric.js canvas ── */
+.canvas-workspace {
+	width: 100%;
+	height: 100%;
+	background:
+		radial-gradient(circle at 26% 12%, rgba(115, 233, 196, 0.1), transparent 34%),
+		radial-gradient(circle at 82% 24%, rgba(143, 183, 255, 0.08), transparent 32%),
+		linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+		var(--editor-canvas-bg);
+	background-size: auto, auto, 50px 50px, 50px 50px, auto;
+	position: relative;
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.canvas-workspace canvas {
+	/* Let Fabric.js handle canvas sizing via viewport transform */
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+}
+
+/* ── Panel sections ── */
+.panel-section {
+	border-bottom: 1px solid var(--editor-border);
+}
+.panel-section-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	border: 0;
+	padding: 8px 12px;
+	cursor: pointer;
+	user-select: none;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: var(--editor-text-dim);
+	background: var(--editor-surface);
+}
+.panel-section-header:hover {
+	color: var(--editor-text);
+}
+.panel-section-body {
+	padding: 8px 12px;
+}
+
+/* ── Tool buttons ── */
+.tool-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border: none;
+	border-radius: var(--radius-ws-ctrl, 10px);
+	background: transparent;
+	color: var(--editor-text-dim);
+	cursor: pointer;
+	font-size: 16px;
+	font-weight: 850;
+	letter-spacing: 0;
+	transition: background 0.15s, color 0.15s;
+}
+.tool-btn:hover {
+	background: color-mix(in srgb, var(--color-ws-surface2, #1C1C26) 84%, transparent);
+	color: var(--editor-text);
+}
+.tool-btn.active {
+	background: var(--editor-accent);
+	color: #ffffff;
+}
+.tool-btn:disabled {
+	opacity: 0.35;
+	cursor: not-allowed;
+}
+
+@media (max-width: 1024px) and (orientation: portrait) {
+	.tool-btn {
+		width: 44px;
+		height: 44px;
+		font-size: 12px;
+	}
+}
+
+@media (min-width: 901px) and (max-width: 1180px) and (pointer: coarse) {
+	.tool-btn {
+		width: 44px;
+		height: 44px;
+		font-size: 12px;
+	}
+
+	.panel-section-header {
+		min-height: 42px;
+	}
+
+	.panel-section-body {
+		padding: 10px 12px;
+	}
+}
+
+/* ── Panel form controls ── */
+.panel-select,
+.panel-input {
+	width: 100%;
+	min-height: 40px;
+	height: 40px;
+	padding: 4px 8px;
+	border: 1px solid var(--editor-border);
+	border-radius: var(--radius-ws-ctrl, 10px);
+	background: var(--editor-bg);
+	color: var(--editor-text);
+	font-size: 12px;
+	outline: none;
+}
+.panel-select:focus,
+.panel-input:focus {
+	border-color: var(--editor-accent);
+}
+/* Keyboard users need a clearly visible focus ring; mouse focus keeps the
+   subtle border-only treatment so the design is unchanged for pointer use. */
+.panel-select:focus-visible,
+.panel-input:focus-visible {
+	border-color: var(--editor-accent);
+	outline: 2px solid var(--editor-accent);
+	outline-offset: 1px;
+}
+.panel-label {
+	display: block;
+	font-size: 11px;
+	color: var(--editor-text-dim);
+	margin-bottom: 4px;
+}
+.panel-btn {
+	width: 100%;
+	min-height: 36px;
+	padding: 6px 12px;
+	border: none;
+	border-radius: var(--radius-ws-ctrl, 10px);
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.15s;
+}
+.panel-btn-primary {
+	background: var(--editor-accent);
+	color: #ffffff;
+}
+.panel-btn-primary:hover {
+	background: var(--editor-accent-hover);
+}
+.panel-btn-primary:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+.panel-btn-secondary {
+	background: var(--editor-surface-raised);
+	border: 1px solid var(--editor-border);
+	color: var(--editor-text);
+}
+.panel-btn-secondary:hover {
+	background: color-mix(in srgb, var(--color-ws-surface2, #1C1C26) 84%, var(--color-ws-accent, #7C5CFF) 16%);
+}
+
+/* ── Dividers ── */
+.tool-divider {
+	width: 28px;
+	height: 1px;
+	background: var(--editor-border);
+	margin: 4px auto;
+}
+
+/* ── Drop zone ── */
+.drop-zone {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+}
+.drop-zone-inner {
+	border: 2px dashed var(--editor-border);
+	border-radius: 12px;
+	padding: 40px 60px;
+	text-align: center;
+	color: var(--editor-text-dim);
+}
+.drop-zone.drag-over .drop-zone-inner {
+	border-color: var(--editor-accent);
+	color: var(--editor-accent);
+	background: color-mix(in srgb, var(--color-ws-accent, #7C5CFF) 8%, transparent);
+}
+
+/* ── Toggle switch ── */
+.panel-toggle {
+	position: relative;
+	width: 32px;
+	height: 18px;
+	border-radius: 9px;
+	background: var(--editor-border);
+	cursor: pointer;
+	transition: background 0.2s;
+	border: none;
+	padding: 0;
+}
+.panel-toggle.on {
+	background: var(--editor-accent);
+}
+.panel-toggle::after {
+	content: "";
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: #ffffff;
+	transition: transform 0.2s;
+}
+.panel-toggle.on::after {
+	transform: translateX(14px);
+}
+.panel-toggle:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+/* Custom premium scrollbar overrides for a pristine UI look */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+::-webkit-scrollbar-track {
+	background: rgba(5, 7, 12, 0.4);
+}
+::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.08);
+	border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: rgba(115, 233, 196, 0.3);
+}
+
+/* Glassmorphism custom classes */
+.glass-panel {
+	background: rgba(10, 14, 26, 0.65);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+.glass-card {
+	background: rgba(255, 255, 255, 0.02);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	border: 1px solid rgba(255, 255, 255, 0.04);
+	transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glass-card:hover {
+	background: rgba(255, 255, 255, 0.045);
+	border-color: rgba(255, 255, 255, 0.08);
+	transform: translateY(-2px);
+	box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(115, 233, 196, 0.05);
+}

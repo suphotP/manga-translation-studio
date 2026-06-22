@@ -1,0 +1,13 @@
+{
+  "name": "manga-editor-web-workspace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:services:start": "bash scripts/dev/start-local-services.sh",
+    "dev:services:stop": "bash scripts/dev/stop-local-services.sh",
+    "dev:services:check": "bash scripts/dev/check-local-services.sh",
+    "rag:index": "bun run scripts/rag/index.ts",
+    "rag:search": "bun run scripts/rag/search.ts",
+    "test:e2e": "RUN_E2E_SMOKE=1 bun run tests/e2e/customer-journey.smoke.ts"
+  }
+}

@@ -1,0 +1,285 @@
+/* Shared form atom styles for the (auth) shell.
+   Imported via :global in each form's <style> block so the tokens land at the
+   document level without polluting the global stylesheet for non-auth pages. */
+
+:root {
+	--auth-primary-grad: linear-gradient(100deg, var(--color-ws-violet), var(--color-ws-accent));
+	--auth-control-bg: color-mix(in srgb, var(--color-ws-surface2) 52%, transparent);
+	--auth-control-bg-strong: color-mix(in srgb, var(--color-ws-surface2) 78%, transparent);
+	--auth-control-bg-hover: color-mix(in srgb, var(--color-ws-surface2) 92%, transparent);
+	--auth-control-shadow: 0 14px 34px -24px color-mix(in srgb, var(--color-ws-accent) 82%, transparent);
+}
+
+.auth-form {
+	display: grid;
+	gap: 12px;
+}
+
+.auth-field {
+	display: grid;
+	gap: 6px;
+}
+
+.auth-field-label {
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.01em;
+	color: var(--color-ws-text);
+}
+.auth-required {
+	display: inline-grid;
+	min-width: 1ch;
+	place-items: center;
+	color: var(--color-ws-rose);
+	font-weight: 700;
+	margin-inline-start: 1px;
+}
+.auth-required.auth-required-ok {
+	color: color-mix(in srgb, var(--color-ws-green) 78%, var(--color-ws-ink));
+}
+
+.auth-field-control {
+	position: relative;
+	display: flex;
+	align-items: stretch;
+}
+
+.auth-input {
+	width: 100%;
+	min-width: 0;
+	padding: 11px 12px;
+	height: 42px;
+	border-radius: var(--radius-ws-ctrl);
+	border: 1px solid var(--ws-hair);
+	background: var(--auth-control-bg);
+	color: var(--color-ws-ink);
+	font-family: inherit;
+	font-size: 14px;
+	transition: border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+}
+
+.auth-input:focus,
+.auth-input:focus-visible {
+	outline: none;
+	border-color: color-mix(in srgb, var(--color-ws-accent) 62%, transparent);
+	background: var(--auth-control-bg-strong);
+	box-shadow: var(--ws-focus-ring);
+}
+
+.auth-input[aria-invalid="true"] {
+	border-color: color-mix(in srgb, var(--color-ws-rose) 58%, transparent);
+	box-shadow: 0 0 0 2px var(--color-ws-bg), 0 0 0 4px color-mix(in srgb, var(--color-ws-rose) 70%, transparent);
+}
+
+.auth-input[disabled],
+.auth-input[readonly] {
+	opacity: 0.7;
+	cursor: not-allowed;
+}
+
+.auth-field-suffix {
+	position: absolute;
+	right: 6px;
+	top: 50%;
+	transform: translateY(-50%);
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 8px;
+	border-radius: var(--radius-ws-ctrl);
+	background: transparent;
+	border: 0;
+	color: var(--color-ws-text);
+	font-size: 11px;
+	font-weight: 700;
+	cursor: pointer;
+	letter-spacing: 0.02em;
+}
+
+.auth-field-suffix:hover {
+	color: var(--color-ws-ink);
+	background: var(--auth-control-bg-hover);
+}
+
+/* Standalone (in-flow) text-button action — e.g. "resend verification" /
+   "send again" buttons that live in the form/card flow rather than inside an
+   `.auth-field-control` positioning context. Mirrors `.auth-field-suffix`'s
+   look but stays in normal flow (no `position: absolute`) so it can't float to
+   the card/viewport edge. */
+.auth-action-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 8px;
+	border-radius: var(--radius-ws-ctrl);
+	background: transparent;
+	border: 0;
+	color: var(--color-ws-text);
+	font-family: inherit;
+	font-size: 12.5px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	cursor: pointer;
+}
+
+.auth-action-link:hover {
+	color: var(--color-ws-ink);
+	background: var(--auth-control-bg-hover);
+}
+
+.auth-action-link:disabled {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+.auth-field-help {
+	font-size: 12px;
+	color: var(--color-ws-faint);
+	line-height: 1.45;
+}
+
+.auth-field-error {
+	font-size: 12px;
+	color: color-mix(in srgb, var(--color-ws-rose) 74%, var(--color-ws-ink));
+	line-height: 1.4;
+}
+
+.auth-submit {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 44px;
+	padding: 0 16px;
+	border: 0;
+	border-radius: var(--radius-ws-ctrl);
+	background: var(--auth-primary-grad);
+	color: var(--color-ws-ink);
+	font-family: inherit;
+	font-size: 14px;
+	font-weight: 700;
+	letter-spacing: 0.01em;
+	cursor: pointer;
+	transition: filter 0.14s ease, transform 0.04s ease, box-shadow 0.14s ease;
+	box-shadow: var(--auth-control-shadow);
+}
+
+.auth-submit:hover:not(:disabled) {
+	filter: brightness(1.08);
+}
+
+.auth-submit:active:not(:disabled) {
+	transform: translateY(1px);
+}
+
+.auth-submit:disabled {
+	cursor: not-allowed;
+	opacity: 0.6;
+	filter: saturate(0.7);
+}
+
+.auth-submit-spinner {
+	display: inline-block;
+	width: 14px;
+	height: 14px;
+	border: 2px solid color-mix(in srgb, var(--color-ws-ink) 42%, transparent);
+	border-top-color: var(--color-ws-ink);
+	border-radius: 999px;
+	animation: auth-spin 0.7s linear infinite;
+}
+
+@keyframes auth-spin {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
+.auth-alert {
+	display: grid;
+	gap: 2px;
+	padding: 10px 12px;
+	border-radius: var(--radius-ws-ctrl);
+	font-size: 13px;
+	line-height: 1.45;
+}
+.auth-alert-error {
+	background: color-mix(in srgb, var(--color-ws-rose) 12%, transparent);
+	border: 1px solid color-mix(in srgb, var(--color-ws-rose) 28%, transparent);
+	color: color-mix(in srgb, var(--color-ws-rose) 58%, var(--color-ws-ink));
+}
+.auth-alert-success {
+	background: color-mix(in srgb, var(--color-ws-green) 12%, transparent);
+	border: 1px solid color-mix(in srgb, var(--color-ws-green) 28%, transparent);
+	color: color-mix(in srgb, var(--color-ws-green) 58%, var(--color-ws-ink));
+}
+.auth-alert-info {
+	background: color-mix(in srgb, var(--color-ws-cyan) 10%, transparent);
+	border: 1px solid color-mix(in srgb, var(--color-ws-cyan) 24%, transparent);
+	color: color-mix(in srgb, var(--color-ws-cyan) 56%, var(--color-ws-ink));
+}
+
+.auth-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 12.5px;
+}
+
+.auth-row a {
+	color: var(--color-ws-text);
+	text-decoration: none;
+	border-bottom: 1px dashed color-mix(in srgb, var(--color-ws-line) 24%, transparent);
+}
+
+.auth-row a:hover {
+	color: var(--color-ws-ink);
+	border-bottom-color: var(--color-ws-accent);
+}
+
+.auth-check {
+	display: inline-flex;
+	gap: 8px;
+	align-items: flex-start;
+	font-size: 12.5px;
+	color: var(--color-ws-text);
+	line-height: 1.5;
+}
+
+.auth-check input[type="checkbox"] {
+	margin-top: 2px;
+	accent-color: var(--color-ws-accent);
+	width: 16px;
+	height: 16px;
+}
+/* Terms / Privacy consent links must READ as links: blue + underlined. */
+.auth-check a {
+	color: var(--color-ws-blue);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	font-weight: 600;
+}
+.auth-check a:hover {
+	color: var(--color-ws-cyan);
+}
+
+/* Light theme opt-in via daisyUI's `<html data-theme="light">` (kept dark-first). */
+html[data-theme="light"] .auth-input {
+	background: color-mix(in srgb, var(--color-ws-ink) 96%, var(--color-ws-bg));
+	border-color: color-mix(in srgb, var(--color-ws-bg) 14%, transparent);
+	color: var(--color-ws-bg);
+}
+html[data-theme="light"] .auth-input:focus,
+html[data-theme="light"] .auth-input:focus-visible {
+	background: var(--color-ws-ink);
+	border-color: color-mix(in srgb, var(--color-ws-accent) 64%, transparent);
+}
+html[data-theme="light"] .auth-field-label { color: color-mix(in srgb, var(--color-ws-bg) 62%, var(--color-ws-text)); }
+html[data-theme="light"] .auth-field-help { color: color-mix(in srgb, var(--color-ws-bg) 48%, var(--color-ws-text)); }
+html[data-theme="light"] .auth-field-suffix { color: color-mix(in srgb, var(--color-ws-bg) 62%, var(--color-ws-text)); }
+html[data-theme="light"] .auth-field-suffix:hover { color: var(--color-ws-bg); background: color-mix(in srgb, var(--color-ws-bg) 6%, transparent); }
+html[data-theme="light"] .auth-action-link { color: color-mix(in srgb, var(--color-ws-bg) 62%, var(--color-ws-text)); }
+html[data-theme="light"] .auth-action-link:hover { color: var(--color-ws-bg); background: color-mix(in srgb, var(--color-ws-bg) 6%, transparent); }
+html[data-theme="light"] .auth-check { color: color-mix(in srgb, var(--color-ws-bg) 62%, var(--color-ws-text)); }
+html[data-theme="light"] .auth-check a { color: var(--color-ws-accent); }
+html[data-theme="light"] .auth-check a:hover { color: var(--color-ws-violet); }
+html[data-theme="light"] .auth-row a { color: color-mix(in srgb, var(--color-ws-bg) 62%, var(--color-ws-text)); }

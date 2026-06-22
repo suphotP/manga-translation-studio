@@ -1,0 +1,103 @@
+# Prometheus alerting rules
+# Define thresholds for proactive monitoring
+
+groups:
+  - name: manga_backend_alerts
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+          / sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: manga-backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+      # API endpoint down
+      - alert: ApiEndpointDown
+        expr: up{job="manga-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: manga-backend
+        annotations:
+          summary: "API endpoint is down"
+          description: "The manga backend API has been down for more than 1 minute"
+
+      # High request latency
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (route)
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: manga-backend
+        annotations:
+          summary: "High request latency"
+          description: "P95 latency for {{ $labels.route }} is {{ $value }}s"
+
+      # AI job queue buildup
+      - alert: AiJobQueueBacklog
+        expr: sum(ai_job_queue_size{status="pending"}) > 50
+        for: 10m
+        labels:
+          severity: warning
+          service: ai-processing
+        annotations:
+          summary: "AI job queue backlog"
+          description: "{{ $value }} AI jobs are pending"
+
+      # High AI job failure rate
+      - alert: HighAiJobFailureRate
+        expr: |
+          sum(rate(ai_job_duration_seconds_count{status="error"}[10m]))
+          / sum(rate(ai_job_duration_seconds_count[10m])) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          service: ai-processing
+        annotations:
+          summary: "High AI job failure rate"
+          description: "AI job failure rate is {{ $value | humanizePercentage }}"
+
+      # Worker unreachable
+      - alert: WorkerUnreachable
+        expr: up{job="manga-worker"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: ai-worker
+        annotations:
+          summary: "AI worker is unreachable"
+          description: "The AI worker has been unreachable for 5 minutes"
+
+  - name: system_alerts
+    interval: 1m
+    rules:
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (process_resident_memory_bytes / node_memory_MemTotal_bytes) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      # High CPU usage
+      - alert: HighCpuUsage
+        expr: rate(process_cpu_seconds_total[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | humanizePercentage }}"

@@ -1,0 +1,59 @@
+# Prometheus recording rules
+# Pre-compute frequently used queries for better dashboard performance
+
+groups:
+  - name: manga_backend
+    interval: 30s
+    rules:
+      # HTTP request rate by endpoint
+      - record: job:http_requests:rate5m
+        expr: sum by (job, route) (rate(http_requests_total[5m]))
+
+      # HTTP error rate
+      - record: job:http_errors:rate5m
+        expr: sum by (job, route) (rate(http_requests_total{status_code=~"5.."}[5m]))
+
+      # Average request duration
+      - record: job:http_request_duration:p50
+        expr: histogram_quantile(0.50, sum by (job, route) (rate(http_request_duration_seconds_bucket[5m])))
+
+      - record: job:http_request_duration:p95
+        expr: histogram_quantile(0.95, sum by (job, route) (rate(http_request_duration_seconds_bucket[5m])))
+
+      - record: job:http_request_duration:p99
+        expr: histogram_quantile(0.99, sum by (job, route) (rate(http_request_duration_seconds_bucket[5m])))
+
+      # AI job metrics
+      - record: ai_job_queue:size
+        expr: sum by (status) (ai_job_queue_size)
+
+      - record: ai_job_completion:rate5m
+        expr: sum(rate(ai_job_duration_seconds_count{status="done"}[5m]))
+
+      - record: ai_job_error:rate5m
+        expr: sum(rate(ai_job_duration_seconds_count{status="error"}[5m]))
+
+      - record: ai_job_avg_duration:5m
+        expr: avg(rate(ai_job_duration_seconds_sum[5m]) / rate(ai_job_duration_seconds_count[5m]))
+
+      # Image upload metrics
+      - record: image_upload:rate5m
+        expr: sum(rate(image_upload_duration_seconds_count[5m]))
+
+      - record: image_upload_avg_size:5m
+        expr: avg(rate(image_upload_size_bytes_sum[5m]) / rate(image_upload_size_bytes_count[5m]))
+
+  - name: system
+    interval: 1m
+    rules:
+      # CPU usage (from process_cpu_seconds_total)
+      - record: process_cpu:usage:ratio
+        expr: rate(process_cpu_seconds_total[1m])
+
+      # Memory usage
+      - record: process_memory:usage:bytes
+        expr: process_resident_memory_bytes
+
+      # Open file descriptors
+      - record: process_open_fds:count
+        expr: process_open_fds

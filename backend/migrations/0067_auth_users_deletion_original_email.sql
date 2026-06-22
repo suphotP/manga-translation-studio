@@ -1,0 +1,13 @@
+-- GDPR right-to-erasure (P1 invite-erasure completeness).
+--
+-- At soft-delete time auth_users.email is rewritten to the alias
+-- "deleted+<id>@redacted.invalid" (frees the address for re-registration). The
+-- later anonymizing purge keys invite-email erasure off the subject's REAL
+-- ORIGINAL email, but by purge time the live row no longer holds it — so invites
+-- addressed to the original email were missed and left as PII forever.
+--
+-- We stash the original email in a dedicated nullable column at soft-delete time
+-- (BEFORE the redaction rewrite) so the purge transaction can recover it and
+-- anonymize the matching invites, then NULL the column in the SAME atomic purge.
+-- ADD COLUMN IF NOT EXISTS keeps the migration safe to re-apply.
+ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS deletion_original_email text;

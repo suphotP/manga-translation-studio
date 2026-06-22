@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 945" role="img" aria-labelledby="title desc">
+  <title id="title">Comic Workspace hero</title>
+  <desc id="desc">Dark premium Comic Workspace floating cards illustration.</desc>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="48%" r="68%">
+      <stop offset="0" stop-color="#0c3145"/>
+      <stop offset=".45" stop-color="#061321"/>
+      <stop offset="1" stop-color="#030817"/>
+    </radialGradient>
+    <linearGradient id="card-a" x1="260" y1="135" x2="900" y2="690" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#17394a" stop-opacity=".78"/>
+      <stop offset="1" stop-color="#07101a" stop-opacity=".92"/>
+    </linearGradient>
+    <linearGradient id="card-b" x1="560" y1="265" x2="1110" y2="640" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3c2b90" stop-opacity=".88"/>
+      <stop offset=".55" stop-color="#211d63" stop-opacity=".82"/>
+      <stop offset="1" stop-color="#090d1d" stop-opacity=".88"/>
+    </linearGradient>
+    <linearGradient id="cw-teal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#32f5dd"/>
+      <stop offset=".55" stop-color="#11c7bb"/>
+      <stop offset="1" stop-color="#0b8d9d"/>
+    </linearGradient>
+    <linearGradient id="cw-violet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#76e9ff"/>
+      <stop offset=".5" stop-color="#7c7cff"/>
+      <stop offset="1" stop-color="#6d3df2"/>
+    </linearGradient>
+    <filter id="glow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 .05 0 0 0 0 .95 0 0 0 0 .86 0 0 0 .45 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="soft-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="42" stdDeviation="36" flood-color="#000" flood-opacity=".58"/>
+    </filter>
+  </defs>
+  <rect width="1680" height="945" fill="url(#bg)"/>
+  <path d="M-80 782C292 624 727 595 1125 634c282 28 498 98 655 196v140H-80Z" fill="#04222f" opacity=".72"/>
+  <path d="M-80 783C317 622 748 596 1120 635c281 29 514 100 660 198" fill="none" stroke="#17f4df" stroke-opacity=".42" stroke-width="3"/>
+  <g opacity=".9">
+    <circle cx="345" cy="492" r="3" fill="#22f5df"/>
+    <circle cx="373" cy="513" r="2.5" fill="#22f5df"/>
+    <circle cx="394" cy="561" r="2" fill="#22f5df"/>
+    <circle cx="1240" cy="220" r="3" fill="#22f5df"/>
+    <circle cx="1306" cy="200" r="2.5" fill="#22f5df"/>
+    <circle cx="1278" cy="250" r="2" fill="#22f5df"/>
+  </g>
+  <g filter="url(#soft-shadow)">
+    <rect x="425" y="142" width="650" height="360" rx="32" fill="url(#card-a)" stroke="#42d9ff" stroke-opacity=".58" stroke-width="3" transform="rotate(-8 750 322)"/>
+    <rect x="560" y="285" width="565" height="265" rx="28" fill="url(#card-b)" stroke="#aeb3ff" stroke-opacity=".72" stroke-width="3" transform="rotate(-4 842 418)"/>
+    <rect x="902" y="270" width="500" height="360" rx="36" fill="#071523" stroke="#92c7ff" stroke-opacity=".78" stroke-width="3" transform="rotate(9 1152 450)"/>
+  </g>
+  <g transform="translate(960 342) rotate(9)" filter="url(#glow)">
+    <path fill="url(#cw-teal)" d="M136 0C57 0 0 57 0 134c0 81 57 139 136 139 37 0 71-13 98-37l-47-57c-14 13-30 19-49 19-37 0-62-27-62-64 0-36 26-60 63-60 20 0 36 7 49 19l48-57C209 13 174 0 136 0Z"/>
+    <path fill="url(#cw-violet)" d="M154 109c19 0 34 11 40 30l23 75 27-88h71l-62 165h-68l-30-90-30 90H57L6 153h73l19 61 20-75c6-19 18-30 36-30Z"/>
+  </g>
+  <ellipse cx="1030" cy="470" rx="420" ry="70" fill="none" stroke="#12f3df" stroke-opacity=".86" stroke-width="5" transform="rotate(-9 1030 470)"/>
+  <g opacity=".58">
+    <circle cx="470" cy="275" r="16" fill="#21f4df"/>
+    <rect x="520" y="318" width="160" height="18" rx="9" fill="#7ec7ff" opacity=".18"/>
+    <rect x="520" y="370" width="285" height="30" rx="15" fill="#b2a3ff" opacity=".28"/>
+    <rect x="520" y="434" width="180" height="26" rx="13" fill="#a98cff" opacity=".28"/>
+    <circle cx="600" cy="338" r="16" fill="#75e6ff" opacity=".86"/>
+  </g>
+</svg>

@@ -1,0 +1,114 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      push_images:
+        description: Push built images to GHCR
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  ghcr-images:
+    name: Build production images
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set image names and tags
+        run: |
+          set -euo pipefail
+          repository="${GITHUB_REPOSITORY,,}"
+          backend="ghcr.io/${repository}/backend"
+          frontend="ghcr.io/${repository}/frontend"
+          worker="ghcr.io/${repository}/worker"
+
+          # Always publish an immutable per-commit SHA tag. Only the default
+          # release branch (master) may move the floating :latest tag, so an
+          # approved dispatch from a feature branch can never overwrite the
+          # production :latest images.
+          release_branch="${GITHUB_REF}"
+          if [[ "$release_branch" == "refs/heads/${DEFAULT_BRANCH}" ]]; then
+            echo "Release branch detected (${GITHUB_REF}); :latest will be published."
+            tag_latest=1
+          else
+            echo "Non-release ref (${GITHUB_REF}); publishing SHA tags only, :latest withheld."
+            tag_latest=0
+          fi
+
+          emit_tags() {
+            local image="$1" var="$2"
+            {
+              echo "${var}<<EOF"
+              echo "${image}:${GITHUB_SHA}"
+              if [[ "$tag_latest" == "1" ]]; then
+                echo "${image}:latest"
+              fi
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          }
+
+          emit_tags "$backend" BACKEND_TAGS
+          emit_tags "$frontend" FRONTEND_TAGS
+          emit_tags "$worker" WORKER_TAGS
+
+          # Sentry release tracking: tag the deployed images/runtime with the
+          # immutable commit SHA so Sentry attributes errors to a release and can
+          # surface "introduced in" regression markers. Consumed by the runtime
+          # env passthrough (docker-compose.prod.yml: GIT_SHA / SENTRY_RELEASE)
+          # on the deployment host and available to any later deploy step here.
+          {
+            echo "GIT_SHA=${GITHUB_SHA}"
+            echo "SENTRY_RELEASE=${GITHUB_SHA}"
+          } >> "$GITHUB_ENV"
+        env:
+          DEFAULT_BRANCH: master
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: ${{ inputs.push_images }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build backend API image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile.api
+          push: ${{ inputs.push_images }}
+          tags: ${{ env.BACKEND_TAGS }}
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          target: preview
+          push: ${{ inputs.push_images }}
+          tags: ${{ env.FRONTEND_TAGS }}
+
+      - name: Build worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile.worker
+          push: ${{ inputs.push_images }}
+          tags: ${{ env.WORKER_TAGS }}
+
+      - name: Deployment host TODO
+        run: |
+          echo "TODO: wire the chosen production host after Render/Cloudflare/Fly/VPS target is selected."
+          echo "This workflow only builds and optionally pushes GHCR images behind the protected production environment."
+

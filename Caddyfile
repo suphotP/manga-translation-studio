@@ -1,0 +1,70 @@
+{
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+{$APP_HOST:app.example.com} {
+	encode zstd gzip
+
+	# Same-origin API calls from the SPA (config default apiBase = "/api") must
+	# reach the backend, not the web preview server. The backend mounts every
+	# route under /api/*, so forward the path unchanged and gate on /readyz so a
+	# replica stays out of rotation until DB + migrations are ready.
+	@api path /api /api/*
+	handle @api {
+		reverse_proxy api:3001 {
+			lb_policy least_conn
+			lb_try_duration 30s
+			lb_try_interval 250ms
+			health_uri /readyz
+			health_interval 15s
+			health_timeout 5s
+		}
+	}
+
+	@immutable_assets path /_app/immutable/* /assets/* /favicon.* /robots.txt
+	handle @immutable_assets {
+		root * /
+		try_files /builds/current{uri} /builds/*{uri}
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	@html path / /index.html /*.html /healthz
+	header @html Cache-Control "no-cache, no-store, must-revalidate"
+	header @html Pragma "no-cache"
+	header @html Expires "0"
+
+	# Everything that is not an /api/* call falls through to the web app. Wrapped
+	# in handle so it is mutually exclusive with the @api handle above.
+	handle {
+		reverse_proxy web:4173 {
+			lb_policy least_conn
+			lb_try_duration 30s
+			lb_try_interval 250ms
+			health_uri /healthz
+			health_interval 15s
+			health_timeout 5s
+		}
+	}
+}
+
+{$API_HOST:api.example.com} {
+	encode zstd gzip
+
+	header Cache-Control "no-cache, no-store, must-revalidate"
+	header Pragma "no-cache"
+	header Expires "0"
+
+	reverse_proxy api:3001 {
+		lb_policy least_conn
+		lb_try_duration 30s
+		lb_try_interval 250ms
+		# /readyz (not /healthz) verifies DB + migrations so a fresh task only
+		# enters rotation once it can actually serve requests.
+		health_uri /readyz
+		health_interval 15s
+		health_timeout 5s
+	}
+}

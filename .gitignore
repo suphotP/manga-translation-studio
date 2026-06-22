@@ -1,0 +1,73 @@
+# Dependencies
+node_modules/
+.pnp.*
+.bun/
+__pycache__/
+*.py[cod]
+
+# Build outputs
+.svelte-kit/
+build/
+dist/
+playwright-report/
+test-results/
+.codex-dev-logs/
+.playwright-mcp/
+.serena/
+.codex/rag/*.json
+
+# Logs
+*.log
+server.log
+
+# Test files
+create-test-image*.js
+run-server.js
+test-*.js
+test-*.ts
+test-*.py
+test-*.mjs
+ai-provider-tests/
+backend/ai-provider-tests/
+
+# Temporary files
+*.backup
+uuid.txt
+
+# Local prototype runtime data
+backend/data/ai-jobs.json
+backend/data/usage-ledger.json
+backend/data/projects/
+backend/data/users/
+backend/data/auth-sessions.json
+backend/data/auth-flow-tokens.json
+backend/data/upload-audit.json
+backend/data/workspaces.json
+backend/data/notifications.json
+backend/data/gdpr/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# stray dev artifacts (never commit)
+cache/
+dashboard_*.png
+/*.png
+backend/qa-seed-*.ts
+scripts/rundev.sh
+
+# Worker account session/credential bundles — LOCAL ONLY, never commit
+backend/worker/accounts/
+
+# --- public-release hardening: never commit local data / secrets / agent state ---
+backend/data/
+frontend/data/
+.claude/
+.serena/
+*.backup

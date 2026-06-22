@@ -1,0 +1,163 @@
+# Production Prometheus alerting rules for manga-editor-web (Wave 4 W4.4).
+#
+# These are the hosted-environment alerts that page on-call. They are loaded by
+# Prometheus (rule_files) in addition to observability/prometheus/alert_rules.yml,
+# which holds the broader development/overview alerts. Keep secrets out of this
+# file — routing/credentials live in observability/alertmanager/config.yml and are
+# injected from the environment.
+#
+# Severity → routing (see ONCALL.md and alertmanager/config.yml):
+#   critical → PagerDuty page + Slack #ops
+#   warning  → Slack #ops (batched)
+#
+# Several alerts reference metrics produced by sidecar exporters that the hosted
+# stack adds (postgres_exporter, blackbox_exporter SSL probe, the backend's own
+# r2_write_failures_total counter). Where a metric is exporter-provided the rule
+# documents which exporter must be scraped. See docs/OBSERVABILITY.md.
+
+groups:
+  - name: manga_prod_paging_alerts
+    interval: 30s
+    rules:
+      # ── 1. Rate limiter store down ─────────────────────────────────
+      # The rate limiter is fail-open on store errors (so a Redis blip does not
+      # 500 every request), which means a sustained store-error stream is an
+      # INVISIBLE loss of abuse protection — page on it. rate_limit_store_errors_total
+      # is emitted by middleware/metrics.ts before fail-mode handling kicks in.
+      - alert: RateLimiterStoreDown
+        expr: |
+          sum(rate(rate_limit_store_errors_total[5m])) > 0.2
+        for: 5m
+        labels:
+          severity: critical
+          service: manga-backend
+          component: rate-limit
+        annotations:
+          summary: "Rate limiter store is failing"
+          description: >-
+            Rate-limit store errors are at {{ $value | humanize }}/s for 5m.
+            The limiter is fail-open, so abuse protection is degraded.
+          runbook: "docs/ONCALL.md#rate-limiter-store-down"
+
+      # ── 2. Sentry / application error-rate spike ───────────────────
+      # 5xx rate spike — the user-visible signal that correlates with a Sentry
+      # error burst. We alert off http_requests_total (always present) rather
+      # than a Sentry webhook so the alert fires even if Sentry ingestion lags.
+      - alert: ErrorRateSpike
+        expr: |
+          (
+            sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+            / clamp_min(sum(rate(http_requests_total[5m])), 1)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: manga-backend
+          component: api
+        annotations:
+          summary: "Application error-rate spike (5xx)"
+          description: >-
+            5xx error ratio is {{ $value | humanizePercentage }} over 5m —
+            cross-check the Sentry release dashboard for the regressing release.
+          runbook: "docs/ONCALL.md#error-rate-spike"
+
+      # ── 3. Database connection-pool saturation ─────────────────────
+      # Requires postgres_exporter (pg_stat_activity) scraped as job="postgres".
+      # Paging threshold: in-use connections within 10% of max_connections.
+      - alert: DbPoolSaturation
+        expr: |
+          (
+            sum(pg_stat_activity_count{state!="idle"})
+            / clamp_min(sum(pg_settings_max_connections), 1)
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          service: postgres
+          component: db-pool
+        annotations:
+          summary: "Postgres connection pool near saturation"
+          description: >-
+            {{ $value | humanizePercentage }} of max_connections in use for 5m.
+            New requests will start failing to acquire a connection.
+          runbook: "docs/ONCALL.md#db-pool-saturation"
+
+      # ── 4. Queue stale (jobs pending but not draining) ─────────────
+      # ai_job_queue_size{status="pending"} stays high while the completion rate
+      # is ~0 → the processor is wedged even though jobs are arriving. This is
+      # distinct from a healthy burst (backlog with progress).
+      - alert: QueueStale
+        expr: |
+          sum(ai_job_queue_size{status="pending"}) > 10
+          and
+          sum(rate(ai_job_duration_seconds_count[15m])) < 0.01
+        for: 15m
+        labels:
+          severity: critical
+          service: ai-processing
+          component: ai-queue
+        annotations:
+          summary: "AI job queue is stale"
+          description: >-
+            {{ with query "sum(ai_job_queue_size{status=\"pending\"})" }}{{ . | first | value | humanize }}{{ end }}
+            jobs pending with no completions in 15m — the queue processor is likely wedged.
+          runbook: "docs/ONCALL.md#queue-stale"
+
+      # ── 5. Object storage (R2) write failures ──────────────────────
+      # r2_write_failures_total is a backend counter incremented when an R2
+      # PutObject/multipart upload fails after retries. Any sustained rate means
+      # uploads/exports are silently dropping bytes.
+      - alert: R2WriteFailures
+        expr: |
+          sum(rate(r2_write_failures_total[5m])) > 0
+        for: 5m
+        labels:
+          severity: critical
+          service: storage
+          component: r2
+        annotations:
+          summary: "R2 object-storage writes are failing"
+          description: >-
+            R2 write failures at {{ $value | humanize }}/s for 5m — uploads and
+            exports may be dropping. Check R2 credentials, bucket, and status page.
+          runbook: "docs/ONCALL.md#r2-write-failures"
+
+      # ── 6. TLS certificate expiry ──────────────────────────────────
+      # Requires blackbox_exporter probing the public endpoints; it exposes
+      # probe_ssl_earliest_cert_expiry as a unix timestamp. Warn at 14 days,
+      # page at 3 days so a stuck renewal is caught before an outage.
+      # Warning fires only in the 14d→3d window; below 3d the critical rule pages
+      # instead. Excluding the critical window here means on-call never gets the
+      # hourly warning noise stacked on top of the critical page (the two rules
+      # have different alertnames, so Alertmanager severity-inhibition can't dedupe
+      # them — the expression has to be mutually exclusive itself).
+      - alert: CertExpiryWarning
+        expr: |
+          (probe_ssl_earliest_cert_expiry - time()) < (14 * 24 * 3600)
+          and (probe_ssl_earliest_cert_expiry - time()) >= (3 * 24 * 3600)
+        for: 1h
+        labels:
+          severity: warning
+          service: edge
+          component: tls
+        annotations:
+          summary: "TLS certificate expiring soon"
+          description: >-
+            Certificate for {{ $labels.instance }} expires in
+            {{ $value | humanizeDuration }} — confirm auto-renewal (Caddy/ACME) is healthy.
+          runbook: "docs/ONCALL.md#cert-expiry"
+
+      - alert: CertExpiryCritical
+        expr: |
+          (probe_ssl_earliest_cert_expiry - time()) < (3 * 24 * 3600)
+        for: 10m
+        labels:
+          severity: critical
+          service: edge
+          component: tls
+        annotations:
+          summary: "TLS certificate expiring imminently"
+          description: >-
+            Certificate for {{ $labels.instance }} expires in
+            {{ $value | humanizeDuration }} — renewal is stuck; manual intervention needed.
+          runbook: "docs/ONCALL.md#cert-expiry"

@@ -1,0 +1,40 @@
+532,550c532,551
+<				// Re-apply aspect ratio constraint if needed
+<				if (ratio && newWidth > 0 && newHeight > 0) {
+<					const [rw, rh] = ratio;
+<
+<					// Validate aspect ratio (prevent division by zero/NaN)
+<					if (rw > 0 && rh > 0) {
+<						const targetRatio = rh / rw;
+<						const currentRatio = newHeight / newWidth;
+<
+<						// Adjust to match target ratio (with tolerance for floating point)
+<					if (Math.abs(currentRatio - targetRatio) > ASPECT_RATIO_TOLERANCE) {
+<						if (currentRatio < targetRatio) {
+<							newHeight = newWidth * targetRatio;
+<						} else {
+<							newWidth = newHeight / targetRatio;
+<						}
+<					}
+<				}
+<	t			}
+---
+>				// Re-apply aspect ratio constraint if needed
+>				if (ratio && newWidth > 0 && newHeight > 0) {
+>					const [rw, rh] = ratio;
+>
+>					// Validate aspect ratio (prevent division by zero/NaN)
+>					if (rw > 0 && rh > 0) {
+>						const targetRatio = rh / rw;
+>						const currentRatio = newHeight / newWidth;
+>
+>						// Adjust to match target ratio (with tolerance for floating point)
+>						if (Math.abs(currentRatio - targetRatio) > ASPECT_RATIO_TOLERANCE) {
+>							if (currentRatio < targetRatio) {
+>								newHeight = newWidth * targetRatio;
+>							} else {
+>								newWidth = newHeight / targetRatio;
+>							}
+>						}
+>					}
+>				}

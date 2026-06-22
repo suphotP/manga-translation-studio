@@ -1,0 +1,90 @@
+# Alertmanager configuration
+# Routes alerts to appropriate notification channels.
+#
+# Wave 4 W4.4: critical alerts page PagerDuty AND post to Slack #ops; warnings go
+# to Slack #ops only (batched). Credentials are NEVER hardcoded here. Alertmanager
+# v0.28 has no runtime env-expansion flag, so the docker-compose entrypoint renders
+# these env vars to files and we read them via the supported *_file config fields:
+#   SLACK_WEBHOOK_URL     → /run/secrets/slack_api_url      (slack_api_url_file)
+#   PAGERDUTY_ROUTING_KEY → /run/secrets/pagerduty_routing_key (routing_key_file)
+# See docs/ONCALL.md for the alert → owner → runbook map.
+
+global:
+  resolve_timeout: 5m
+  # Slack incoming-webhook URL for #ops, read from a file rendered by the
+  # entrypoint from $SLACK_WEBHOOK_URL (no secret in this committed file).
+  slack_api_url_file: "/run/secrets/slack_api_url"
+
+# Inhibition rules
+inhibit_rules:
+  # Inhibit warning if critical is firing for the same alert
+  - source_match:
+      severity: "critical"
+    target_match:
+      severity: "warning"
+    equal: ["alertname", "service"]
+
+# Routing configuration
+route:
+  receiver: "default"
+  group_by: ["alertname", "service"]
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  routes:
+    # Critical alerts page PagerDuty immediately AND notify Slack #ops.
+    - match:
+        severity: critical
+      receiver: "pagerduty-and-ops"
+      group_wait: 0s
+      repeat_interval: 5m
+
+    # Warning alerts batch to Slack #ops every hour (no page).
+    - match:
+        severity: warning
+      receiver: "slack-ops"
+      repeat_interval: 1h
+
+# Receivers configuration
+receivers:
+  - name: "default"
+    webhook_configs:
+      - url: "http://localhost:5001/alerts"
+
+  # Critical: page on-call via PagerDuty (Events API v2) and post to Slack #ops.
+  - name: "pagerduty-and-ops"
+    pagerduty_configs:
+      # Routing key read from a file rendered by the entrypoint from
+      # $PAGERDUTY_ROUTING_KEY — never hardcoded in this committed file.
+      - routing_key_file: "/run/secrets/pagerduty_routing_key"
+        severity: "critical"
+        description: "{{ .CommonAnnotations.summary }} ({{ .CommonLabels.service }})"
+        details:
+          alertname: "{{ .GroupLabels.alertname }}"
+          summary: "{{ .CommonAnnotations.summary }}"
+          description: "{{ .CommonAnnotations.description }}"
+          service: "{{ .CommonLabels.service }}"
+          runbook: "{{ .CommonAnnotations.runbook }}"
+        send_resolved: true
+    slack_configs:
+      - channel: "#ops"
+        title: ":rotating_light: {{ .GroupLabels.alertname }}"
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Severity:* {{ .CommonLabels.severity }}
+          *Service:* {{ .CommonLabels.service }}
+          *Runbook:* {{ .CommonAnnotations.runbook }}
+        send_resolved: true
+
+  # Warning: Slack #ops only.
+  - name: "slack-ops"
+    slack_configs:
+      - channel: "#ops"
+        title: ":warning: {{ .GroupLabels.alertname }}"
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Service:* {{ .CommonLabels.service }}
+          *Runbook:* {{ .CommonAnnotations.runbook }}
+        send_resolved: true

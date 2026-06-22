@@ -1,0 +1,6 @@
+# TypeScript sources are always text. cost-guard.ts previously embedded raw NUL
+# bytes in a hash-fingerprint string literal, which made git treat it as binary
+# (so its diffs were unreviewable). The NULs are now written as \u0000 escapes;
+# this guarantees the file diffs as text even against the old binary blob.
+*.ts text diff
+backend/src/services/support/cost-guard.ts text diff

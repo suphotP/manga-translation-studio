@@ -1,0 +1,91 @@
+# Prometheus configuration for manga-editor-web
+# Scrapes metrics from backend API every 15 seconds
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: "manga-editor"
+    environment: "development"
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "alertmanager:9093"
+
+# Load alerting + recording rules. The development/overview alerts live next to
+# this file; the production paging rules are mounted from infra/alerts/.
+rule_files:
+  - "recording_rules.yml"
+  - "alert_rules.yml"
+  # Mounted into the Prometheus container from infra/alerts/ (see
+  # docker-compose.prod.yml). Path is relative to the config dir.
+  - "/etc/prometheus/alerts/manga-prod.rules.yml"
+
+# ── Hosted metrics remote_write (Wave 4 W4.4) ─────────────────────
+# Ship the local TSDB to a hosted backend (Grafana Cloud OR Better Stack) so we
+# retain metrics beyond local retention and alert/dashboard centrally.
+#
+# Secrets are NEVER committed. Provide them via the environment and pre-render
+# this file with `envsubst` before mounting (Prometheus 2.55 has no runtime
+# env-expansion flag — the file must contain resolved values). See
+# docs/OBSERVABILITY.md. The values:
+#   METRICS_REMOTE_WRITE_URL       — hosted ingest endpoint (/api/prom/push)
+#   METRICS_REMOTE_WRITE_USERNAME  — Grafana Cloud numeric instance id (omit for Better Stack)
+#   METRICS_REMOTE_WRITE_TOKEN     — API token / source token
+#
+# Commented out so the dev stack (no hosted target) loads cleanly. Uncomment and
+# supply env to enable shipping.
+#
+# remote_write:
+#   - url: "${METRICS_REMOTE_WRITE_URL}"
+#     # Grafana Cloud: Basic auth (username = instance id, password = token).
+#     basic_auth:
+#       username: "${METRICS_REMOTE_WRITE_USERNAME}"
+#       password: "${METRICS_REMOTE_WRITE_TOKEN}"
+#     # Better Stack: drop basic_auth above and use a bearer token instead:
+#     # authorization:
+#     #   type: Bearer
+#     #   credentials: "${METRICS_REMOTE_WRITE_TOKEN}"
+#     queue_config:
+#       capacity: 10000
+#       max_shards: 50
+#       max_samples_per_send: 2000
+
+# Scrape configurations
+scrape_configs:
+  # Backend API metrics. /metrics is Basic-Auth protected (fail-closed in prod),
+  # so the scrape job authenticates with the same METRICS_BASIC_AUTH_* creds the
+  # backend reads. Credentials come from the environment — never hardcode them.
+  - job_name: "manga-backend"
+    static_configs:
+      - targets:
+          - "backend:3001"
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    # Uncomment in the hosted/prod stack (envsubst-rendered, see header):
+    # basic_auth:
+    #   username: "${METRICS_BASIC_AUTH_USER}"
+    #   password: "${METRICS_BASIC_AUTH_PASS}"
+
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets:
+          - "localhost:9090"
+
+  # cAdvisor container metrics
+  - job_name: "cadvisor"
+    static_configs:
+      - targets:
+          - "cadvisor:8080"
+
+  # Grafana metrics (if monitoring Grafana itself)
+  - job_name: "grafana"
+    static_configs:
+      - targets:
+          - "grafana:3000"
+    metrics_path: "/metrics"
