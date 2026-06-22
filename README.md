@@ -8,7 +8,24 @@ A full, browser-based **scanlation / comic-localization studio** — the kind of
 
 ---
 
+## 📸 Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><b>The editor</b><br><sub>clean, typeset & place text on a Fabric.js canvas</sub><br><img src="screenshots/editor.png" alt="The editor"></td>
+    <td width="50%"><b>The dashboard</b><br><sub>your studio's pipeline at a glance</sub><br><img src="screenshots/dashboard.png" alt="The dashboard"></td>
+  </tr>
+  <tr>
+    <td width="50%"><b>The work board</b><br><sub>every page, every duty, every handoff</sub><br><img src="screenshots/work-board.png" alt="The work board"></td>
+    <td width="50%"><b>AI-assisted clean</b><br><sub>review the result with a before / after compare</sub><br><img src="screenshots/ai-clean.png" alt="AI-assisted clean"></td>
+  </tr>
+</table>
+
+---
+
 ## Table of contents
+
+- [Screenshots](#-screenshots)
 
 - [What it is](#-what-it-is)
 - [The scanlation pipeline](#-the-scanlation-pipeline)
